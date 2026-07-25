@@ -12,6 +12,7 @@ from config import SPORTS, DEFAULT_MIN_CONFIDENCE
 from odds_client import fetch_todays_events, summarize_event_odds
 from line_tracker import init_db, record_snapshot, get_line_movement
 from weather import get_game_weather
+from mlb_weather import get_mlb_game_weather
 from injuries_client import get_injury_notes
 from ai_analyzer import analyze_game
 
@@ -58,7 +59,10 @@ async def get_picks(
             summary = summarize_event_odds(event)
             record_snapshot(summary)
             summary["line_movement"] = get_line_movement(summary["id"])
-            summary["weather"] = await get_game_weather(summary["home_team"])
+            if sport_key == "baseball_mlb":
+                summary["weather"] = await get_mlb_game_weather(summary["home_team"], summary["commence_time"])
+            else:
+                summary["weather"] = await get_game_weather(summary["home_team"])
 
             home_injuries = await get_injury_notes(sport_key, summary["home_team"])
             away_injuries = await get_injury_notes(sport_key, summary["away_team"])

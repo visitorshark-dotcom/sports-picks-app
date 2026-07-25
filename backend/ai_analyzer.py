@@ -31,6 +31,11 @@ own stated uncertainty is the goal.
 - Consider: line movement vs. the initial number (sharp money signal), \
 discrepancies between books, situational factors (rest, travel, weather for \
 outdoor games), and any injury notes given.
+- For MLB games with a "retractable" roof status, the actual open/closed \
+state is unknown to you - treat any weather data for those as a minor, \
+uncertain factor rather than a confident signal. If wind is "unclassified" \
+(park orientation not configured), you can still note wind speed generally \
+but should not claim a directional carry/suppression effect you can't verify.
 - Output ONLY valid JSON, no markdown fences, no commentary outside the JSON.
 
 JSON schema:
@@ -68,12 +73,22 @@ def _build_user_prompt(game: dict) -> str:
 
     weather = game.get("weather")
     if weather:
-        parts.append(
-            f"Weather at kickoff (approx, current conditions): {weather.get('temp_f')}F, "
-            f"wind {weather.get('wind_mph')} mph, precipitation {weather.get('precipitation_mm')} mm."
-        )
+        if "wind_classification" in weather:
+            # MLB-style detailed forecast
+            parts.append(
+                f"Weather forecast for approx. first-pitch hour ({weather.get('forecast_time_utc')} UTC): "
+                f"{weather.get('temp_f')}F, wind {weather.get('wind_mph')} mph from {weather.get('wind_from_deg')}° "
+                f"({weather.get('wind_classification')}), precipitation probability {weather.get('precip_probability_pct')}%. "
+                f"Roof status: {weather.get('roof_status')}"
+                + (" (open/closed unknown - weight this weather data accordingly)" if weather.get("roof_status") == "retractable" else "") + "."
+            )
+        else:
+            parts.append(
+                f"Weather at kickoff (approx, current conditions): {weather.get('temp_f')}F, "
+                f"wind {weather.get('wind_mph')} mph, precipitation {weather.get('precipitation_mm')} mm."
+            )
     else:
-        parts.append("Weather — not available (indoor venue, unmapped stadium, or fetch failed).")
+        parts.append("Weather — not available (indoor/domed venue, unmapped stadium, or fetch failed).")
 
     injuries = game.get("injury_notes")
     if injuries:
