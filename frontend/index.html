@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Today's ATS / ML Picks</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Today's Top Picks</h1>
+    <p class="subtitle">AI-assisted analysis of live odds, line movement, and matchup context</p>
+  </header>
+
+  <div class="disclaimer">
+    ⚠️ Confidence scores are an AI's analytical opinion based on the data it was given —
+    not a guaranteed win probability. No model can reliably predict sports outcomes.
+    For entertainment/research purposes only. Bet responsibly.
+  </div>
+
+  <div class="controls">
+    <label>
+      Sport
+      <select id="sportFilter">
+        <option value="all">All Sports</option>
+        <option value="nfl">NFL</option>
+        <option value="ncaaf">College Football</option>
+        <option value="nba">NBA</option>
+        <option value="ncaab">College Basketball</option>
+        <option value="mlb">MLB</option>
+        <option value="nhl">NHL</option>
+      </select>
+    </label>
+
+    <label>
+      Min. Confidence: <span id="confVal">70</span>
+      <input type="range" id="confSlider" min="50" max="95" value="70" step="5" />
+    </label>
+
+    <button id="loadBtn">Get Today's Picks</button>
+  </div>
+
+  <div id="status"></div>
+  <div id="picksContainer" class="picks-grid"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
