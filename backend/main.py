@@ -69,6 +69,7 @@ async def get_picks(
 
     # Run AI analysis concurrently
     analyses = await asyncio.gather(*(analyze_game(g) for g in all_summaries))
+    analysis_errors = sum(1 for a in analyses if a.get("_error"))
 
     picks = []
     for game, analysis in zip(all_summaries, analyses):
@@ -95,6 +96,7 @@ async def get_picks(
         "min_confidence": min_confidence,
         "games_analyzed": len(all_summaries),
         "picks_meeting_threshold": len(picks),
+        "analysis_errors": analysis_errors,
         "picks": picks,
         "disclaimer": (
             "Confidence scores are Claude's analytical opinion based on the data "

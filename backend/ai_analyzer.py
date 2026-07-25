@@ -102,6 +102,7 @@ async def analyze_game(game: dict) -> dict:
         raw_text = "".join(block.text for block in response.content if block.type == "text")
         parsed = _extract_json(raw_text)
     except (json.JSONDecodeError, Exception) as e:  # noqa: BLE001 - surface as a non-pick, don't crash the batch
+        print(f"[ai_analyzer] FAILED for {game.get('away_team')} @ {game.get('home_team')}: {repr(e)}")
         parsed = {
             "has_pick": False,
             "pick_type": None,
@@ -110,5 +111,6 @@ async def analyze_game(game: dict) -> dict:
             "confidence": 0,
             "key_factors": [],
             "reasoning": f"Analysis failed: {e}",
+            "_error": True,
         }
     return parsed
