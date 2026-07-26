@@ -11,9 +11,11 @@ BASE_URL = "https://api.the-odds-api.com/v4"
 
 async def fetch_todays_events(sport_key: str) -> list[dict]:
     """
-    Fetch upcoming events + odds (h2h, spreads, totals) for a given sport,
-    filtered to games starting today (UTC calendar day is used as the
-    practical boundary since commence_time is returned in UTC).
+    Fetch odds (h2h, spreads, totals) for a given sport, filtered to games
+    that start today AND haven't started yet. Once a game begins, books
+    typically pull or freeze markets, so past-commence-time games would
+    otherwise show up with thin/missing odds data and get correctly (but
+    confusingly) skipped by the AI analysis with no explanation.
     """
     url = f"{BASE_URL}/sports/{sport_key}/odds"
     params = {
@@ -28,14 +30,15 @@ async def fetch_todays_events(sport_key: str) -> list[dict]:
         resp.raise_for_status()
         events = resp.json()
 
-    today = datetime.now(timezone.utc).date()
+    now = datetime.now(timezone.utc)
+    today = now.date()
     todays_events = []
     for ev in events:
         try:
             commence = datetime.fromisoformat(ev["commence_time"].replace("Z", "+00:00"))
         except (KeyError, ValueError):
             continue
-        if commence.date() == today:
+        if commence.date() == today and commence > now:
             todays_events.append(ev)
     return todays_events
 
