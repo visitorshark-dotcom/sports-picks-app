@@ -3,19 +3,25 @@ Thin wrapper around The Odds API (https://the-odds-api.com).
 Free tier: 500 requests/month, US region odds, main markets.
 """
 import httpx
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from config import ODDS_API_KEY, ODDS_REGIONS, ODDS_FORMAT
 
 BASE_URL = "https://api.the-odds-api.com/v4"
 
 
-async def fetch_todays_events(sport_key: str) -> list[dict]:
+async def fetch_todays_events(sport_key: str, hours_ahead: int = 30) -> list[dict]:
     """
     Fetch odds (h2h, spreads, totals) for a given sport, filtered to games
-    that start today AND haven't started yet. Once a game begins, books
-    typically pull or freeze markets, so past-commence-time games would
-    otherwise show up with thin/missing odds data and get correctly (but
-    confusingly) skipped by the AI analysis with no explanation.
+    starting between now and `hours_ahead` hours from now.
+
+    NOTE: this used to filter by "commence_time's UTC calendar date == today",
+    but that's broken for US sports - most evening games (7-8pm local) land
+    on TOMORROW's UTC date, since UTC is ahead of US time zones. That made
+    the app appear to have "no games" for most of the afternoon/evening even
+    when a full slate was still upcoming. A rolling time window sidesteps
+    the calendar-date problem entirely. 30 hours is generous enough to
+    reliably cover the rest of a US sports day including late West Coast
+    start times, without reaching into tomorrow's separate slate.
     """
     url = f"{BASE_URL}/sports/{sport_key}/odds"
     params = {
@@ -31,16 +37,16 @@ async def fetch_todays_events(sport_key: str) -> list[dict]:
         events = resp.json()
 
     now = datetime.now(timezone.utc)
-    today = now.date()
-    todays_events = []
+    cutoff = now + timedelta(hours=hours_ahead)
+    upcoming_events = []
     for ev in events:
         try:
             commence = datetime.fromisoformat(ev["commence_time"].replace("Z", "+00:00"))
         except (KeyError, ValueError):
             continue
-        if commence.date() == today and commence > now:
-            todays_events.append(ev)
-    return todays_events
+        if now < commence <= cutoff:
+            upcoming_events.append(ev)
+    return upcoming_events
 
 
 async def fetch_sports_list() -> list[dict]:
