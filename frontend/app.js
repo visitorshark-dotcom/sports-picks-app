@@ -32,6 +32,9 @@ async function loadPicks() {
     statusEl.textContent =
       `Analyzed ${data.games_analyzed} game(s). ${data.picks_meeting_threshold} pick(s) meet the ${data.min_confidence}%+ threshold. ` +
       (data.analysis_errors > 0 ? `⚠️ ${data.analysis_errors} game(s) failed AI analysis (see server logs). ` : "") +
+      (data.odds_fetch_errors && data.odds_fetch_errors.length > 0
+        ? `🛑 Odds fetch failed: ${data.odds_fetch_errors.join(" | ")} `
+        : "") +
       `Generated ${new Date(data.generated_at_utc + "Z").toLocaleString()}.`;
 
     if (data.picks.length === 0) {
