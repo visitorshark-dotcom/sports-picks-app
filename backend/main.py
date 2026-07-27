@@ -49,11 +49,14 @@ async def get_picks(
         return {"error": f"Unknown sport '{sport}'. Valid: all, {', '.join(SPORTS.keys())}", "picks": []}
 
     all_summaries = []
+    odds_fetch_errors = []
     for sport_key in sport_keys:
         try:
             events = await fetch_todays_events(sport_key)
         except Exception as e:  # noqa: BLE001
+            error_msg = f"{sport_key}: {e}"
             print(f"[odds_client] failed to fetch {sport_key}: {e}")
+            odds_fetch_errors.append(error_msg)
             continue
         for event in events:
             summary = summarize_event_odds(event)
@@ -101,6 +104,7 @@ async def get_picks(
         "games_analyzed": len(all_summaries),
         "picks_meeting_threshold": len(picks),
         "analysis_errors": analysis_errors,
+        "odds_fetch_errors": odds_fetch_errors,
         "picks": picks,
         "disclaimer": (
             "Confidence scores are Claude's analytical opinion based on the data "
