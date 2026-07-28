@@ -52,10 +52,10 @@ MLB_PARKS: dict[str, dict] = {
     "Kansas City Royals": {"lat": 39.0517, "lon": -94.4803, "roof": "outdoor", "orientation_deg": 30},
     "Los Angeles Angels": {"lat": 33.8003, "lon": -117.8827, "roof": "outdoor", "orientation_deg": 22.5},
     "Los Angeles Dodgers": {"lat": 34.0739, "lon": -118.2400, "roof": "outdoor", "orientation_deg": 22.5},
-    "Miami Marlins": {"lat": 25.7781, "lon": -80.2196, "roof": "retractable", "orientation_deg": 130
-    "Milwaukee Brewers": {"lat": 43.0280, "lon": -87.9712, "roof": "retractable", "orientation_deg": 130
+    "Miami Marlins": {"lat": 25.7781, "lon": -80.2196, "roof": "retractable", "orientation_deg": 130},
+    "Milwaukee Brewers": {"lat": 43.0280, "lon": -87.9712, "roof": "retractable", "orientation_deg": 130},
     "Minnesota Twins": {"lat": 44.9817, "lon": -93.2776, "roof": "outdoor", "orientation_deg": 75},
-    "New York Mets": {"lat": 40.7571, "lon": -73.8458, "roof": "outdoor", "orientation_deg": 20
+    "New York Mets": {"lat": 40.7571, "lon": -73.8458, "roof": "outdoor", "orientation_deg": 20},
     "New York Yankees": {"lat": 40.8296, "lon": -73.9262, "roof": "outdoor", "orientation_deg": 90},
     "Athletics": {"lat": 38.5802, "lon": -121.5130, "roof": "outdoor", "orientation_deg": 60},
     "Oakland Athletics": {"lat": 38.5802, "lon": -121.5130, "roof": "outdoor", "orientation_deg": 60},
