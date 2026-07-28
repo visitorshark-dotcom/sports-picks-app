@@ -38,7 +38,7 @@ from datetime import datetime, timezone
 # Multiple name variants are included per team where naming might differ
 # (e.g. "Athletics" vs "Oakland Athletics") so lookups don't silently miss.
 MLB_PARKS: dict[str, dict] = {
-    "Arizona Diamondbacks": {"lat": 33.4453, "lon": -112.0667, "roof": "retractable", "orientation_deg": 0,
+    "Arizona Diamondbacks": {"lat": 33.4453, "lon": -112.0667, "roof": "retractable", "orientation_deg": 0},
     "Atlanta Braves": {"lat": 33.8908, "lon": -84.4678, "roof": "outdoor", "orientation_deg": 140},
     "Baltimore Orioles": {"lat": 39.2839, "lon": -76.6218, "roof": "outdoor", "orientation_deg": 22.5},
     "Boston Red Sox": {"lat": 42.3467, "lon": -71.0972, "roof": "outdoor", "orientation_deg": 22.5},
