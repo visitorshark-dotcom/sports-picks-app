@@ -37,6 +37,7 @@ def list_sports():
 async def get_picks(
     sport: str = Query("all", description="one of: all, " + ", ".join(SPORTS.keys())),
     min_confidence: int = Query(DEFAULT_MIN_CONFIDENCE, ge=0, le=100),
+    show_all: bool = Query(False, description="if true, include every analyzed game (even declined ones) with Claude's reasoning, not just picks meeting the threshold"),
 ):
     """
     Fetch today's games for the requested sport(s), snapshot the lines,
@@ -79,7 +80,16 @@ async def get_picks(
     analysis_errors = sum(1 for a in analyses if a.get("_error"))
 
     picks = []
+    all_analyses_debug = []
     for game, analysis in zip(all_summaries, analyses):
+        all_analyses_debug.append({
+            "matchup": f"{game['away_team']} @ {game['home_team']}",
+            "has_pick": analysis.get("has_pick", False),
+            "confidence": analysis.get("confidence", 0),
+            "pick_type": analysis.get("pick_type"),
+            "team": analysis.get("team"),
+            "reasoning": analysis.get("reasoning"),
+        })
         if analysis.get("has_pick") and analysis.get("confidence", 0) >= min_confidence:
             picks.append({
                 "sport": game["sport_title"],
@@ -98,7 +108,7 @@ async def get_picks(
             })
 
     picks.sort(key=lambda p: p["confidence"], reverse=True)
-    return {
+    response = {
         "generated_at_utc": __import__("datetime").datetime.utcnow().isoformat(),
         "min_confidence": min_confidence,
         "games_analyzed": len(all_summaries),
@@ -112,6 +122,9 @@ async def get_picks(
             "outcomes are inherently uncertain. Bet responsibly."
         ),
     }
+    if show_all:
+        response["all_games"] = all_analyses_debug
+    return response
 
 
 # Serve the frontend
