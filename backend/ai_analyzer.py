@@ -37,6 +37,8 @@ uncertain factor rather than a confident signal. If wind is "unclassified" \
 (park orientation not configured), you can still note wind speed generally \
 but should not claim a directional carry/suppression effect you can't verify.
 - Output ONLY valid JSON, no markdown fences, no commentary outside the JSON.
+- Keep "reasoning" to 2-4 sentences and "key_factors" to short phrases (under \
+15 words each) - concise, not padded. This keeps responses reliably complete.
 
 JSON schema:
 {
@@ -110,7 +112,7 @@ async def analyze_game(game: dict) -> dict:
     try:
         response = await client.messages.create(
             model=ANTHROPIC_MODEL,
-            max_tokens=600,
+            max_tokens=1200,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": _build_user_prompt(game)}],
         )
