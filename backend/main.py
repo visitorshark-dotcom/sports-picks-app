@@ -81,11 +81,10 @@ async def get_picks(
 
     picks = []
     all_analyses_debug = []
-    all_full = []  # every game with full detail, regardless of has_pick/threshold
+    all_full = []  # every game with full detail, regardless of threshold
     for game, analysis in zip(all_summaries, analyses):
         all_analyses_debug.append({
             "matchup": f"{game['away_team']} @ {game['home_team']}",
-            "has_pick": analysis.get("has_pick", False),
             "confidence": analysis.get("confidence", 0),
             "pick_type": analysis.get("pick_type"),
             "team": analysis.get("team"),
@@ -100,7 +99,6 @@ async def get_picks(
             "consensus_total": game["consensus_total"],
             "line_movement": game["line_movement"],
             "weather": game["weather"],
-            "has_pick": analysis.get("has_pick", False),
             "pick_type": analysis.get("pick_type"),
             "team": analysis.get("team"),
             "line": analysis.get("line"),
@@ -110,7 +108,8 @@ async def get_picks(
         }
         all_full.append(full_entry)
 
-        if analysis.get("has_pick") and analysis.get("confidence", 0) >= min_confidence:
+        # A pick is only "real" if it has a team named AND wasn't an error AND clears your bar
+        if full_entry["team"] and not analysis.get("_error") and full_entry["confidence"] >= min_confidence:
             picks.append(full_entry)
 
     picks.sort(key=lambda p: p["confidence"], reverse=True)
@@ -119,7 +118,7 @@ async def get_picks(
     # threshold, so there's always something to look at day-to-day. Each
     # entry is honestly flagged with meets_threshold / has_real_edge so this
     # can never be mistaken for a genuine high-confidence pick when it isn't.
-    best_available_pool = [g for g in all_full if g["has_pick"]]
+    best_available_pool = [g for g in all_full if g["team"]]
     best_available_pool.sort(key=lambda g: g["confidence"], reverse=True)
     best_available = []
     for g in best_available_pool[:2]:

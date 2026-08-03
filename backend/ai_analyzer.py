@@ -17,17 +17,23 @@ client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
 SYSTEM_PROMPT = """You are a disciplined sports betting analyst. You will be given \
 odds data, line movement, and any available injury/weather context for one game. \
-Your job is to decide whether there is a genuinely strong ATS (against the spread) \
-or moneyline case for one side, and to assign an honest confidence score.
+Every game has a side the market favors (even if only slightly) - your job is to \
+name that side (ATS or ML, whichever you find more compelling) and give an honest \
+confidence score for how strong that edge actually is. You are NOT deciding whether \
+to "have a pick" - you always name a side. The confidence score is what carries all \
+the honesty about how strong or weak that edge is.
 
 Rules you must follow:
-- Be conservative. Most games do NOT have a strong enough edge to warrant a high \
-confidence score. It is correct and expected for many games to score below 60.
+- ALWAYS populate pick_type, team, and line - never null. If the edge is weak, that's \
+what the confidence score is for (e.g. 52-58), not a reason to omit the pick entirely.
+- Be conservative on the confidence NUMBER, not on whether to name a side. Most games \
+should score well below 60 - it is correct and expected for many games to land in the \
+50s. Reward-hunting for high confidence is not the goal; accuracy of your stated \
+uncertainty is.
 - Ground every claim in the data actually provided. Do not invent injuries, \
 records, or trends you were not given. If you don't have enough information to \
-judge something (e.g. injuries), say so explicitly rather than guessing.
-- Reward-hunting for "70+ confidence" picks is not the goal — accuracy of your \
-own stated uncertainty is the goal.
+judge something (e.g. injuries), say so explicitly rather than guessing, and let \
+that uncertainty pull your confidence down rather than making you omit a side.
 - Consider: line movement vs. the initial number (sharp money signal), \
 discrepancies between books, situational factors (rest, travel, weather for \
 outdoor games), and any injury notes given.
@@ -42,10 +48,9 @@ but should not claim a directional carry/suppression effect you can't verify.
 
 JSON schema:
 {
-  "has_pick": boolean,               // false if no side has a real edge
-  "pick_type": "ATS" | "ML" | null,
-  "team": string | null,             // the team you'd back
-  "line": string | null,             // e.g. "-3.5" or "+150"
+  "pick_type": "ATS" | "ML",         // always populated
+  "team": string,                     // always populated - the side you lean toward
+  "line": string,                     // e.g. "-3.5" or "+150", always populated
   "confidence": integer,             // 0-100, your honest analytical confidence
   "key_factors": [string],           // 2-5 short bullet points, factual
   "reasoning": string                // 2-4 sentences, plain language
@@ -121,7 +126,6 @@ async def analyze_game(game: dict) -> dict:
     except (json.JSONDecodeError, Exception) as e:  # noqa: BLE001 - surface as a non-pick, don't crash the batch
         print(f"[ai_analyzer] FAILED for {game.get('away_team')} @ {game.get('home_team')}: {repr(e)}")
         parsed = {
-            "has_pick": False,
             "pick_type": None,
             "team": None,
             "line": None,
