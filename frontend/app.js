@@ -38,19 +38,36 @@ async function loadPicks() {
       `Generated ${new Date(data.generated_at_utc + "Z").toLocaleString()}.`;
 
     if (data.picks.length === 0) {
-      container.innerHTML = `<p style="color:#8a93a8">No games currently meet this confidence threshold. Try lowering it or checking back later as lines move.</p>`;
+      container.innerHTML = "";
+      const note = document.createElement("p");
+      note.style.color = "#8a93a8";
+      note.textContent = "No games currently meet this confidence threshold.";
+      container.appendChild(note);
+
+      if (data.best_available && data.best_available.length > 0) {
+        const label = document.createElement("p");
+        label.style.color = "#f1d97b";
+        label.style.fontWeight = "600";
+        label.textContent = "⚠️ Best available today (below your threshold — not a confident pick):";
+        container.appendChild(label);
+        data.best_available.forEach(pick => container.appendChild(renderCard(pick, true)));
+      }
       return;
     }
 
-    data.picks.forEach(pick => container.appendChild(renderCard(pick)));
+    data.picks.forEach(pick => container.appendChild(renderCard(pick, false)));
   } catch (err) {
     statusEl.textContent = "Failed to load picks. Is the backend running? " + err;
   }
 }
 
-function renderCard(pick) {
+function renderCard(pick, isBelowThreshold) {
   const card = document.createElement("div");
   card.className = "pick-card";
+  if (isBelowThreshold) {
+    card.style.borderLeftColor = "#f1d97b";
+    card.style.opacity = "0.85";
+  }
 
   const confClass = pick.confidence >= 80 ? "conf-high" : "conf-mid";
   const kickoff = new Date(pick.commence_time).toLocaleString();
@@ -59,9 +76,14 @@ function renderCard(pick) {
     .map(f => `<li>${escapeHtml(f)}</li>`)
     .join("");
 
+  const belowBadge = isBelowThreshold
+    ? `<div style="color:#f1d97b; font-size:12px; margin-bottom:6px;">⚠️ Below your ${pick.meets_your_threshold === false ? "" : ""}threshold — Claude's honest read, not a confident pick</div>`
+    : "";
+
   card.innerHTML = `
     <div class="sport-tag">${escapeHtml(pick.sport)}</div>
     <h3>${escapeHtml(pick.matchup)}</h3>
+    ${belowBadge}
     <span class="confidence-badge ${confClass}">${pick.confidence}% confidence</span>
     <div class="pick-line">${pick.pick_type}: <strong>${escapeHtml(pick.team || "")} ${escapeHtml(pick.line || "")}</strong></div>
     <ul class="key-factors">${factors}</ul>
