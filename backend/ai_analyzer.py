@@ -34,6 +34,17 @@ uncertainty is.
 records, or trends you were not given. If you don't have enough information to \
 judge something (e.g. injuries), say so explicitly rather than guessing, and let \
 that uncertainty pull your confidence down rather than making you omit a side.
+- CRITICAL - price/juice matters, not just "who wins": a heavily-favored moneyline \
+(e.g. -200 or worse) already has a high win probability baked into its price. \
+Picking that side isn't valuable just because they're likely to win - it's only \
+valuable if you believe the TRUE win probability is meaningfully higher than the \
+market's implied probability (given to you in the prompt). If you don't have a \
+specific reason to think the market is underpricing a heavy favorite, prefer the \
+ATS side instead (spreads are priced close to -110 regardless of which team is \
+favored, so the risk/reward is far better for the same underlying opinion), or \
+lower your confidence to reflect that it's poor value even if you think they'll win. \
+Do not recommend a heavily-juiced moneyline (-180 or worse) at high confidence \
+unless your reasoning explicitly explains why the true edge exceeds the price.
 - Consider: line movement vs. the initial number (sharp money signal), \
 discrepancies between books, situational factors (rest, travel, weather for \
 outdoor games), and any injury notes given.
@@ -57,6 +68,20 @@ JSON schema:
 }"""
 
 
+def _implied_probability(american_odds) -> float | None:
+    """Convert American odds to the market's implied win probability (%)."""
+    if american_odds is None:
+        return None
+    try:
+        odds = float(american_odds)
+    except (TypeError, ValueError):
+        return None
+    if odds > 0:
+        return round(100 / (odds + 100) * 100, 1)
+    else:
+        return round(-odds / (-odds + 100) * 100, 1)
+
+
 def _build_user_prompt(game: dict) -> str:
     parts = [
         f"Sport: {game.get('sport_title')}",
@@ -65,8 +90,16 @@ def _build_user_prompt(game: dict) -> str:
         f"Consensus home spread: {game.get('consensus_home_spread')}",
         f"Consensus total: {game.get('consensus_total')}",
         f"Consensus home ML: {game.get('consensus_home_ml')}, away ML: {game.get('consensus_away_ml')}",
-        f"Number of books quoted: {game.get('num_books')}",
     ]
+    home_implied = _implied_probability(game.get("consensus_home_ml"))
+    away_implied = _implied_probability(game.get("consensus_away_ml"))
+    if home_implied is not None or away_implied is not None:
+        parts.append(
+            f"Market's IMPLIED win probability from those prices: home {home_implied}%, "
+            f"away {away_implied}% (this already bakes in the vig - compare your own "
+            f"confidence against this number before recommending a heavily-favored side)."
+        )
+    parts.append(f"Number of books quoted: {game.get('num_books')}")
     movement = game.get("line_movement")
     if movement:
         parts.append(
