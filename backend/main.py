@@ -81,6 +81,7 @@ async def get_picks(
 
     picks = []
     all_analyses_debug = []
+    all_full = []  # every game with full detail, regardless of has_pick/threshold
     for game, analysis in zip(all_summaries, analyses):
         all_analyses_debug.append({
             "matchup": f"{game['away_team']} @ {game['home_team']}",
@@ -90,24 +91,42 @@ async def get_picks(
             "team": analysis.get("team"),
             "reasoning": analysis.get("reasoning"),
         })
+
+        full_entry = {
+            "sport": game["sport_title"],
+            "matchup": f"{game['away_team']} @ {game['home_team']}",
+            "commence_time": game["commence_time"],
+            "consensus_home_spread": game["consensus_home_spread"],
+            "consensus_total": game["consensus_total"],
+            "line_movement": game["line_movement"],
+            "weather": game["weather"],
+            "has_pick": analysis.get("has_pick", False),
+            "pick_type": analysis.get("pick_type"),
+            "team": analysis.get("team"),
+            "line": analysis.get("line"),
+            "confidence": analysis.get("confidence", 0),
+            "key_factors": analysis.get("key_factors", []),
+            "reasoning": analysis.get("reasoning"),
+        }
+        all_full.append(full_entry)
+
         if analysis.get("has_pick") and analysis.get("confidence", 0) >= min_confidence:
-            picks.append({
-                "sport": game["sport_title"],
-                "matchup": f"{game['away_team']} @ {game['home_team']}",
-                "commence_time": game["commence_time"],
-                "consensus_home_spread": game["consensus_home_spread"],
-                "consensus_total": game["consensus_total"],
-                "line_movement": game["line_movement"],
-                "weather": game["weather"],
-                "pick_type": analysis["pick_type"],
-                "team": analysis["team"],
-                "line": analysis["line"],
-                "confidence": analysis["confidence"],
-                "key_factors": analysis.get("key_factors", []),
-                "reasoning": analysis["reasoning"],
-            })
+            picks.append(full_entry)
 
     picks.sort(key=lambda p: p["confidence"], reverse=True)
+
+    # "Best available" - top games by confidence even if none cleared your
+    # threshold, so there's always something to look at day-to-day. Each
+    # entry is honestly flagged with meets_threshold / has_real_edge so this
+    # can never be mistaken for a genuine high-confidence pick when it isn't.
+    best_available_pool = [g for g in all_full if g["has_pick"]]
+    best_available_pool.sort(key=lambda g: g["confidence"], reverse=True)
+    best_available = []
+    for g in best_available_pool[:2]:
+        entry = dict(g)
+        entry["meets_your_threshold"] = g["confidence"] >= min_confidence
+        best_available.append(entry)
+
     response = {
         "generated_at_utc": __import__("datetime").datetime.utcnow().isoformat(),
         "min_confidence": min_confidence,
@@ -116,10 +135,14 @@ async def get_picks(
         "analysis_errors": analysis_errors,
         "odds_fetch_errors": odds_fetch_errors,
         "picks": picks,
+        "best_available": best_available,
         "disclaimer": (
             "Confidence scores are Claude's analytical opinion based on the data "
             "provided, not a statistically calibrated win probability. Sports "
-            "outcomes are inherently uncertain. Bet responsibly."
+            "outcomes are inherently uncertain. Bet responsibly. 'best_available' "
+            "entries are the day's top games EVEN IF they didn't meet your "
+            "threshold - check meets_your_threshold before treating one as a "
+            "genuine high-confidence pick."
         ),
     }
     if show_all:
