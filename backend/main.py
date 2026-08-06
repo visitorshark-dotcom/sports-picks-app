@@ -38,11 +38,12 @@ async def get_picks(
     sport: str = Query("all", description="one of: all, " + ", ".join(SPORTS.keys())),
     min_confidence: int = Query(DEFAULT_MIN_CONFIDENCE, ge=0, le=100),
     show_all: bool = Query(False, description="if true, include every analyzed game (even declined ones) with Claude's reasoning, not just picks meeting the threshold"),
+    snapshot_only: bool = Query(False, description="if true, only fetch odds and record line-movement snapshots - skips the Claude API entirely. Use this for scheduled/cron pings so they don't burn Anthropic credits; only use the full endpoint (without this flag) when you actually want to see picks."),
 ):
     """
     Fetch today's games for the requested sport(s), snapshot the lines,
-    run each game through the AI analyzer, and return only picks that
-    meet the confidence threshold.
+    and (unless snapshot_only) run each game through the AI analyzer and
+    return only picks that meet the confidence threshold.
     """
     sport_keys = list(SPORTS.values()) if sport == "all" else [SPORTS.get(sport)]
     sport_keys = [s for s in sport_keys if s]
@@ -63,6 +64,13 @@ async def get_picks(
             summary = summarize_event_odds(event)
             record_snapshot(summary)
             summary["line_movement"] = get_line_movement(summary["id"])
+
+            if snapshot_only:
+                # Skip weather/injury lookups and Claude entirely - this call
+                # exists purely to build line-movement history cheaply.
+                all_summaries.append(summary)
+                continue
+
             if sport_key == "baseball_mlb":
                 summary["weather"] = await get_mlb_game_weather(summary["home_team"], summary["commence_time"])
             else:
@@ -73,7 +81,17 @@ async def get_picks(
             injury_parts = [n for n in (home_injuries, away_injuries) if n]
             summary["injury_notes"] = " | ".join(injury_parts) if injury_parts else None
 
+
             all_summaries.append(summary)
+
+    if snapshot_only:
+        return {
+            "generated_at_utc": __import__("datetime").datetime.utcnow().isoformat(),
+            "mode": "snapshot_only",
+            "games_snapshotted": len(all_summaries),
+            "odds_fetch_errors": odds_fetch_errors,
+            "note": "Odds fetched and line-movement snapshots recorded. Claude was NOT called - no AI credits used on this request.",
+        }
 
     # Run AI analysis concurrently
     analyses = await asyncio.gather(*(analyze_game(g) for g in all_summaries))
